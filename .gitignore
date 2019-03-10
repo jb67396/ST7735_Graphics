@@ -1,0 +1,17 @@
+# ignore everything
+*
+
+# whitelist directories
+!*/
+
+# whitelist file types
+!*.c
+!*.h
+!osARM.s
+!PID_stm32.s
+!cr4_fft_64_stm32.s
+!.gitignore
+
+# ignore others
+ADCSWTrigger.*
+ADCT0ATrigger.*
