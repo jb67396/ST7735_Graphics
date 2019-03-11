@@ -1,26 +1,8 @@
 // ST7735TestMain.c
-// Runs on LM4F120/TM4C123
-// Test the functions in ST7735.c by printing basic
-// patterns to the LCD.
-//    16-bit color, 128 wide by 160 high LCD
-// Daniel Valvano
-// March 30, 2015
+// Runs on TM4C123
+// Modified graphics code to test line drawing and 3D rendering
+// Heavily influenced by code written by Jonathan Valvano http://users.ece.utexas.edu/~valvano/
 
-/* This example accompanies the book
-   "Embedded Systems: Real Time Interfacing to ARM Cortex M Microcontrollers",
-   ISBN: 978-1463590154, Jonathan Valvano, copyright (c) 2014
-
- Copyright 2015 by Jonathan W. Valvano, valvano@mail.utexas.edu
-    You may use, edit, run or distribute this file
-    as long as the above copyright notice remains
- THIS SOFTWARE IS PROVIDED "AS IS".  NO WARRANTIES, WHETHER EXPRESS, IMPLIED
- OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF
- MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE.
- VALVANO SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL,
- OR CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
- For more information about my classes, my research, and my books, see
- http://users.ece.utexas.edu/~valvano/
- */
 
 // hardware connections
 // **********ST7735 TFT and SDC*******************
@@ -36,51 +18,24 @@
 // VCC (pin 2) connected to +3.3 V
 // Gnd (pin 1) connected to ground
 
-// **********wide.hk ST7735R with ADXL345 accelerometer *******************
-// Silkscreen Label (SDC side up; LCD side down) - Connection
-// VCC  - +3.3 V
-// GND  - Ground
-// !SCL - PA2 Sclk SPI clock from microcontroller to TFT or SDC
-// !SDA - PA5 MOSI SPI data from microcontroller to TFT or SDC
-// DC   - PA6 TFT data/command
-// RES  - PA7 TFT reset
-// CS   - PA3 TFT_CS, active low to enable TFT
-// *CS  - (NC) SDC_CS, active low to enable SDC
-// MISO - (NC) MISO SPI data from SDC to microcontroller
-// SDA  – (NC) I2C data for ADXL345 accelerometer
-// SCL  – (NC) I2C clock for ADXL345 accelerometer
-// SDO  – (NC) I2C alternate address for ADXL345 accelerometer
-// Backlight + - Light, backlight connected to +3.3 V
-
-// **********wide.hk ST7735R with ADXL335 accelerometer *******************
-// Silkscreen Label (SDC side up; LCD side down) - Connection
-// VCC  - +3.3 V
-// GND  - Ground
-// !SCL - PA2 Sclk SPI clock from microcontroller to TFT or SDC
-// !SDA - PA5 MOSI SPI data from microcontroller to TFT or SDC
-// DC   - PA6 TFT data/command
-// RES  - PA7 TFT reset
-// CS   - PA3 TFT_CS, active low to enable TFT
-// *CS  - (NC) SDC_CS, active low to enable SDC
-// MISO - (NC) MISO SPI data from SDC to microcontroller
-// X– (NC) analog input X-axis from ADXL335 accelerometer
-// Y– (NC) analog input Y-axis from ADXL335 accelerometer
-// Z– (NC) analog input Z-axis from ADXL335 accelerometer
-// Backlight + - Light, backlight connected to +3.3 V
-
 #include <stdio.h>
 #include <stdint.h>
 #include "ST7735.h"
 #include "PLL.h"
 #include "tm4c123gh6pm.h"
 
-#define Sphere 1
+#define Sphere 0
 #define Cube 0
+#define Demo 1
 #if Sphere == 1
 	#define DIMX 	12
 	#define DIMY 	14
 	#define FZS		15
-#else 
+#elif Cube == 1
+	#define DIMYR 	5
+	#define DIMZ 	5
+	#define FZ 		12
+#elif Demo == 1
 	#define DIMYR 	5
 	#define DIMZ 	5
 	#define FZ 		12
@@ -90,6 +45,10 @@
 // Use only bitwise anding so no need for modulus
 
 #if Cube == 1
+const static int8_t wave[] = {0,2,4,6,7,7,7,6,4,2,0,-2,-4,-6,-7,-7,-7,-6,-4,-2};
+// Only needed for z rotations
+const static uint8_t zwave[] = {10,10,10,9,8,8,7,6,5,5,5,5,5,6,7,8,8,9,10,10};	
+#elif Demo == 1
 const static int8_t wave[] = {0,2,4,6,7,7,7,6,4,2,0,-2,-4,-6,-7,-7,-7,-6,-4,-2};
 // Only needed for z rotations
 const static uint8_t zwave[] = {10,10,10,9,8,8,7,6,5,5,5,5,5,6,7,8,8,9,10,10};	
@@ -104,6 +63,7 @@ void drawOctant(int x0, int y0, int z0, uint16_t color){
 	setAddrWindow(x,y,x,y);
 	pushColor(color);
 }	
+// Initial attempt and 3D modification of midpoint circle algorithm
 void drawcircle(int x1, int y1, int z1, int radius, uint16_t color, uint8_t plane)
 {
 		int8_t x0 = x1;//(x1*FZ/(z1));
@@ -162,7 +122,8 @@ void drawcircle(int x1, int y1, int z1, int radius, uint16_t color, uint8_t plan
         }
     }
 }
-#else
+#elif Cube == 1 
+// Slightly modified Bresenham's algorithm
 void makeLine(int8_t x, int8_t y, int8_t z, int8_t x1, int8_t y1, int8_t z1, uint16_t color) {			
 	int8_t cx = 64 + (x*FZ/(z));
 	int8_t cy = 80 + ((y+10)*FZ/(z));
@@ -228,7 +189,77 @@ void makeLine(int8_t x, int8_t y, int8_t z, int8_t x1, int8_t y1, int8_t z1, uin
 		pushColor(color);
 	}
 }
+#elif Demo == 1
+// Slightly modified Bresenham's algorithm
+void makeLine(int8_t x, int8_t y, int8_t z, int8_t x1, int8_t y1, int8_t z1, uint16_t color) {			
+	int16_t cx = 64 + (x*FZ/(z));
+	int16_t cy = 80 + ((y+10)*FZ/(z));
+	int16_t cx1 = 64 + (x1*FZ/(z1));
+	int16_t cy1 = 80 + ((y1+10)*FZ/(z1));
+	
+	int8_t	dx, dy;
+	int8_t	incx, incy;
+	int8_t	balance;
+
+	if (cx1 >= cx) {
+		dx = cx1 - cx;
+		incx = 1;
+	} 
+	else {
+		dx = cx - cx1;
+		incx = -1;
+	}
+
+	if (cy1 >= cy) {
+		dy = cy1 - cy;
+		incy = 1;
+	}
+	else {
+		dy = cy - cy1;
+		incy = -1;
+	}
+
+	if (dx >= dy) {
+		dy <<= 1;
+		balance = dy - dx;
+		dx <<= 1;
+
+		while (cx != cx1) {
+			setAddrWindow(cx,cy,cx,cy);
+			pushColor(color);
+			if (balance >= 0) {
+				cy += incy;
+				balance -= dx;
+			}
+			balance += dy;
+			cx += incx;
+		}
+		setAddrWindow(cx,cy,cx,cy);
+		pushColor(color);
+	}
+	else {
+		dx <<= 1;
+		balance = dx - dy;
+		dy <<= 1;
+
+		while (cy != cy1) {
+			setAddrWindow(cx,cy,cx,cy);
+			pushColor(color);
+			if (balance >= 0) {
+				cx += incx;
+				balance -= dy;
+			}
+			balance += dx;
+			cy += incy;
+		} 
+		setAddrWindow(cx,cy,cx,cy);
+		pushColor(color);
+	}
+}
 #endif
+
+
+
 #if Cube == 1
 /***** Fun little rotation in xy plane ******
 void makeBox(int8_t i, uint16_t color){
@@ -336,6 +367,63 @@ void runSphere(void)	{
 		k = k * -1;
 	}
 }
+#elif Demo == 1
+void makeBox(int8_t i, int8_t x, int8_t y, uint16_t color){
+	uint8_t z = zwave[i];
+	uint8_t z1 = zwave[(i+5)%20];
+	uint8_t z2 = zwave[(i+10)%20];
+	uint8_t z3 = zwave[(i+15)%20];
+	
+	int8_t a = x + wave[i];
+	int8_t b = x + wave[(i+10)%20];
+	
+	int8_t c = x + wave[(i+5)%20];
+	int8_t d = x + wave[(i+15)%20];
+	
+	int8_t y1 = y + DIMYR;
+	int8_t y2 = y - DIMYR;
+	
+	if(i < 0 && color == 0x0000)
+		return;
+	// Try to make this a loop
+	//Top Face
+	makeLine(a, y1, z,  c, y1, z1, color);
+	makeLine(a, y1, z,  d, y1, z3, color);
+	makeLine(b, y1, z2, c, y1, z1, color);
+	makeLine(b, y1, z2, d, y1, z3, color);
+	//Bottom Face
+	makeLine(a, y2, z, c, y2, z1, color);
+	makeLine(a, y2, z, d, y2, z3, color);
+	makeLine(b, y2, z2, c, y2, z1, color);
+	makeLine(b, y2, z2, d, y2, z3, color);
+	//Connectors
+	makeLine(a, y1, z, a, y2, z, color);
+	makeLine(c, y1, z1, c, y2, z1, color);
+	makeLine(b, y1, z2, b, y2, z2, color);
+	makeLine(d, y1, z3, d, y2, z3, color);
+}
+void runCube(void) {
+	int8_t i = 0;
+	int8_t last = -1;
+	int8_t lastx = 0, dx = 2;
+	int8_t lasty = 0, dy = 2;
+	
+		while(1) {
+			for(i = 0; i < 20; i++) {
+				makeBox(last, lastx, lasty, 0x0000);
+				makeBox(i, lastx + dx, lasty + dy, 0xFFFF);
+				Delay1ms(350);
+				last = i;
+				lastx = lastx + dx;
+				lasty = lasty + dy;
+				if(lastx + dx < -25 || lastx + dx > 25)
+					dx = -dx;
+				if(lasty + dy < -37 || lasty + dy > 17)
+					dy = -dy;
+			}
+			last = 19;
+		}
+}
 #endif
 int main(void){
   PLL_Init(Bus80MHz);                  // set system clock to 80 MHz
@@ -344,6 +432,8 @@ int main(void){
 	#if Sphere == 1
 		runSphere();
 	#elif Cube == 1
+		runCube();
+	#elif Demo == 1
 		runCube();
 	#endif
 }
