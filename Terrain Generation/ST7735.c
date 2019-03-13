@@ -509,54 +509,6 @@ void ST7735_DrawPixel(int16_t x, int16_t y, uint16_t color) {
   pushColor(color);
 }
 
-
-//------------ST7735_DrawFastVLine------------
-// Draw a vertical line at the given coordinates with the given height and color.
-// A vertical line is parallel to the longer side of the rectangular display
-// Requires (11 + 2*h) bytes of transmission (assuming image fully on screen)
-// Input: x     horizontal position of the start of the line, columns from the left edge
-//        y     vertical position of the start of the line, rows from the top edge
-//        h     vertical height of the line
-//        color 16-bit color, which can be produced by ST7735_Color565()
-// Output: none
-void ST7735_DrawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color) {
-  uint8_t hi = color >> 8, lo = color;
-
-  // Rudimentary clipping
-  if((x >= _width) || (y >= _height)) return;
-  if((y+h-1) >= _height) h = _height-y;
-  setAddrWindow(x, y, x, y+h-1);
-
-  while (h--) {
-    writedata(hi);
-    writedata(lo);
-  }
-}
-
-
-//------------ST7735_DrawFastHLine------------
-// Draw a horizontal line at the given coordinates with the given width and color.
-// A horizontal line is parallel to the shorter side of the rectangular display
-// Requires (11 + 2*w) bytes of transmission (assuming image fully on screen)
-// Input: x     horizontal position of the start of the line, columns from the left edge
-//        y     vertical position of the start of the line, rows from the top edge
-//        w     horizontal width of the line
-//        color 16-bit color, which can be produced by ST7735_Color565()
-// Output: none
-void ST7735_DrawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color) {
-  uint8_t hi = color >> 8, lo = color;
-
-  // Rudimentary clipping
-  if((x >= _width) || (y >= _height)) return;
-  if((x+w-1) >= _width)  w = _width-x;
-  setAddrWindow(x, y, x+w-1, y);
-
-  while (w--) {
-    writedata(hi);
-    writedata(lo);
-  }
-}
-
 void ST7735_FillScreen(uint16_t color){
 	uint8_t hi = color >> 8, lo = color;
 	setAddrWindow(0, 0, _width, _height);
