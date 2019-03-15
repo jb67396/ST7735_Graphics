@@ -27,8 +27,8 @@
 #define Perlin 1
 #if Perlin == 1
 	#define FZ			17
-	#define SCALE		7
-	#define ZSCALE	2
+	#define SCALE		5
+	#define ZSCALE	1
 	#define XSTRIP	144/SCALE
 	#define ZSTRIP	80/SCALE
 int32_t terrain[ZSTRIP+1][XSTRIP];
@@ -52,8 +52,8 @@ static int hash[] = {208,34,231,213,32,248,233,56,161,78,24,140,71,48,140,254,24
 
 int noise2(int x, int y)
 {
-    int tmp = hash[(y + SEED) % 256];
-    return hash[(tmp + x) % 256];
+    int tmp = hash[(y + SEED) & 255];
+    return hash[(tmp + x) & 255];
 }
 
 int32_t lin_inter(int32_t x, int32_t y, int32_t s)
@@ -72,6 +72,7 @@ int32_t noise2d(int32_t x, int32_t y)
     int y_int = y/100;
     int32_t x_frac = x%100;
     int32_t y_frac = y%100;
+	
     int s = noise2(x_int, y_int);
     int t = noise2(x_int+1, y_int);
     int u = noise2(x_int, y_int+1);
@@ -85,7 +86,7 @@ int32_t perlin2d(int32_t x, int32_t y, int32_t freq, int depth)
 {
     int32_t xa = x*freq%832;
     int32_t ya = y*freq%832;
-    int32_t amp = 1;
+    int32_t amp = 10;
     int32_t fin = 0;
     int32_t div = 0;
 
@@ -105,9 +106,9 @@ int32_t perlin2d(int32_t x, int32_t y, int32_t freq, int depth)
 // Slightly modified Bresenham's algorithm
 void makeLine(int8_t x, int8_t y, int8_t z, int8_t x1, int8_t y1, int8_t z1, uint16_t color) {			
 	int16_t cx = 64 + (x*FZ/(z));
-	int16_t cy = 65 + ((y+24)*FZ/(z));
+	int16_t cy = 55 + ((y+24)*FZ/(z));
 	int16_t cx1 = 64 + (x1*FZ/(z1));
-	int16_t cy1 = 65 + ((y1+24)*FZ/(z1));
+	int16_t cy1 = 55 + ((y1+24)*FZ/(z1));
 	
 	int8_t	dx, dy;
 	int8_t	incx, incy;
@@ -179,8 +180,10 @@ void runTerrain(void) {
 		}*/
 		for(z = 2; z <= ZSTRIP; z++){
 			uint16_t color = 0xFFFF - ((z-2)<<12) - ((z-2)<<7) - ((z-2)<<1);
+			if(z > 30)
+				color = 0x0000;
 			for(x = -XSTRIP/2; x < XSTRIP/2 - 1; x++) {
-				if(z * 2 <= ZSTRIP + 2){
+				if((z * 2) <= ZSTRIP + 2){
 					z1 = (z - 2) * 2;
 					makeLine(x*SCALE, terrain[z1][x+XSTRIP/2], (z1+2)*ZSCALE, (x+1)*SCALE, terrain[z1][(x+1)+XSTRIP/2],     (z1+2)*ZSCALE, 0x0000);
 					makeLine(x*SCALE, terrain[z1][x+XSTRIP/2], (z1+2)*ZSCALE,     x*SCALE,       terrain[z1+1][x+XSTRIP/2], (z1+3)*ZSCALE, 0x0000);
@@ -196,9 +199,9 @@ void runTerrain(void) {
 				makeLine(x*SCALE, terrain[z-1][x+XSTRIP/2], z*ZSCALE, (x+1)*SCALE,   terrain[z][(x+1)+XSTRIP/2], (z+1)*ZSCALE, color);
 			}
 		}
-		for(x = -XSTRIP/2; x < XSTRIP/2 - 1; x++) {
+		/*for(x = -XSTRIP/2; x < XSTRIP/2 - 1; x++) {
 			makeLine(x*SCALE, terrain[z-1][x+XSTRIP/2], z*ZSCALE, (x+1)*SCALE, terrain[z-1][(x+1)+XSTRIP/2], z*ZSCALE, 0xFFFF - ((ZSTRIP+1)<<12) - ((ZSTRIP+1)<<7) - ((ZSTRIP+1)<<1));
-		}
+		}*/
 		/*
 		for(z = 2; z <= ZSTRIP; z++){
 			for(x = -XSTRIP/2; x < XSTRIP/2 - 1; x++) {
@@ -214,9 +217,9 @@ void runTerrain(void) {
 			}
 		}
 		for(j = 0; j < XSTRIP; j++){
-				terrain[ZSTRIP][j] = perlin2d(j * 20, ioff++, 11, 22)/1200000;
+				terrain[ZSTRIP][j] = perlin2d(j * 20, ioff++, 3, 22)/90000;
 		}
-		Delay1ms(150);
+		//Delay1ms(100);
 	
 	}
 }
@@ -229,7 +232,7 @@ int main(void){
 		int i, j;
 		for(i = 0; i <= ZSTRIP; i++){
 			for(j = 0; j < XSTRIP; j++){
-				terrain[i][j] = perlin2d(j * 20, i * 40, 111, 22)/1200000;
+				terrain[i][j] = perlin2d(j * 20, i, 3, 22)/90000; //110000
 			}
 		}
 		runTerrain();
